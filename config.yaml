@@ -1,0 +1,103 @@
+# Bybit AI vs Human 1v1 Competition Bot - V2 PRO Config
+# =====================================================
+
+# Exchange settings (MAINNET for competition)
+exchange:
+  network: mainnet  # MAINNET for competition - DO NOT CHANGE
+  category: linear  # USDT perpetuals
+
+# Trading pairs - high liquidity majors
+trading:
+  symbols:
+    - BTCUSDT
+    - ETHUSDT
+    - SOLUSDT
+    - BNBUSDT
+    - XRPUSDT
+    - DOGEUSDT
+    - AVAXUSDT
+    - LINKUSDT
+  timeframes:
+    - 5      # 5m for entries
+    - 15     # 15m for confirmation  
+    - 60     # 1h for trend
+  max_open_positions: 4      # Max concurrent positions
+  min_trades_per_day: 12     # Competition minimum + buffer
+
+# Leverage (max 15x per competition rules)
+leverage:
+  min_leverage: 3
+  max_leverage: 15    # HARD LIMIT for competition
+  default_leverage: 8
+  dynamic: true       # Adjust based on volatility/confidence
+
+# Risk Management - CRITICAL FOR WINNING
+risk:
+  base_risk_pct: 1.5      # 1.5% per trade
+  max_risk_pct: 2.5       # Absolute max 2.5% per trade
+  max_daily_drawdown: 8.0 # Stop trading if down 8%
+  max_position_pct: 25.0  # Max 25% of capital per position
+  min_capital: 1000       # Competition minimum
+
+# Position sizing
+position:
+  size_method: risk_based  # risk_based recommended
+  fixed_size_usdt: 100     # Fallback for fixed method
+
+# Stop Loss / Take Profit
+stops:
+  use_atr_stops: true
+  atr_stop_multiplier: 2.0    # 2x ATR stop loss
+  atr_tp_multiplier: 3.0      # 3x ATR take profit (1.5:1 RR)
+  trailing_stop: true
+  trailing_activation_pct: 1.5   # Activate at 1.5% profit
+  trailing_distance_pct: 1.0     # Trail 1% behind
+
+# Strategy parameters - OPTIMIZED
+strategy:
+  # RSI settings
+  rsi_period: 14
+  rsi_oversold: 30
+  rsi_overbought: 70
+  
+  # MACD settings
+  macd_fast: 12
+  macd_slow: 26
+  macd_signal: 9
+  
+  # Bollinger Bands
+  bb_period: 20
+  bb_std: 2.0
+  
+  # Volume
+  volume_ma_period: 20
+  volume_spike_multiplier: 1.5
+  
+  # Trend EMAs
+  ema_fast: 9
+  ema_slow: 21
+  trend_ema: 50
+  
+  # Signal thresholds
+  min_confidence: 0.55    # Minimum confidence to consider
+  min_signal_score: 5     # Min indicators agreeing
+
+# ML Model settings
+ml:
+  enabled: true
+  retrain_samples: 100    # Retrain after this many trades
+  lookback_periods: 100
+
+# Notifications (optional - TG alerts)
+notifications:
+  telegram:
+    enabled: false
+    chat_id: ""
+    bot_token: ""
+
+# Logging
+logging:
+  level: INFO
+  console: true
+  file: true
+  trade_log: true  # Detailed trade log for competition audit

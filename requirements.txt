@@ -1,0 +1,13 @@
+# Core
+pybit>=5.6.0
+pyyaml>=6.0
+numpy>=1.24.0
+
+# ML (optional but recommended)
+scikit-learn>=1.3.0
+
+# WebSocket (optional - for real-time data)
+websockets>=12.0
+
+# Dashboard (optional)
+rich>=13.0.0
