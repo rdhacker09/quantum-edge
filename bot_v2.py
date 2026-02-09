@@ -56,6 +56,11 @@ from src.smart_entry import SmartEntryOptimizer, EntryType
 from src.position_manager import PositionManager
 from src.ml_model import MLSignalEnhancer
 
+# New advanced indicators (Credits: LuxAlgo, The_Caretaker - see module headers)
+from src.trendline_breaks import TrendlineBreaks, BreakoutType
+from src.advanced_ma import AdvancedMA, MAType, MACrossoverCalculator
+from src.echo_forecast import EchoForecast, ForecastMode
+
 
 # ============================================================
 # CONFIGURATION
@@ -393,12 +398,23 @@ class Indicators:
 # ============================================================
 
 class EnhancedStrategy:
-    """Multi-factor trading strategy."""
+    """
+    Multi-factor trading strategy with advanced indicators.
+    
+    Includes indicators from:
+    - LuxAlgo: Trendlines with Breaks, Echo Forecast (CC BY-NC-SA 4.0)
+    - The_Caretaker: Advanced MA Crossover (MPL 2.0)
+    - Standard TA: RSI, MACD, BB, Supertrend
+    """
     
     def __init__(self, config: Config):
         self.config = config
         self.logger = logging.getLogger(__name__)
         self.regime_detector = MarketRegimeDetector()
+        
+        # Initialize advanced indicators (Credits preserved in module headers)
+        self.trendline_detector = TrendlineBreaks(length=14, slope_mult=1.0)
+        self.echo_forecast = EchoForecast(evaluation_window=30, forecast_window=10)
     
     def analyze(self, symbol: str, klines: Dict[int, List[Dict]], 
                 order_flow: Dict = None) -> Optional[Dict]:
@@ -415,7 +431,7 @@ class EnhancedStrategy:
         
         current_price = closes[-1]
         
-        # Calculate all indicators
+        # Calculate standard indicators
         rsi = Indicators.rsi(closes, 14)
         macd_line, signal_line, histogram = Indicators.macd(closes)
         bb_upper, bb_mid, bb_lower = Indicators.bollinger_bands(closes)
@@ -424,6 +440,18 @@ class EnhancedStrategy:
         ema21 = Indicators.ema(closes, 21)
         ema50 = Indicators.ema(closes, 50)
         supertrend, st_direction = Indicators.supertrend(highs, lows, closes)
+        
+        # NEW: Hull Moving Average (faster trend detection) - Credit: Alan Hull
+        hma21 = AdvancedMA.hma(closes, 21)
+        
+        # NEW: Trendline Breakout Detection - Credit: LuxAlgo
+        trendline_signal = self.trendline_detector.analyze(highs, lows, closes)
+        
+        # NEW: Echo Forecast (pattern-based prediction) - Credit: LuxAlgo
+        try:
+            forecast_bias, forecast_conf = self.echo_forecast.get_short_term_bias(closes, bars=5)
+        except:
+            forecast_bias, forecast_conf = "neutral", 0.0
         
         # Get latest values
         latest = {
@@ -439,7 +467,14 @@ class EnhancedStrategy:
             'ema50': ema50[-1] or current_price,
             'supertrend_dir': st_direction[-1] or 0,
             'volume': volumes[-1],
-            'avg_volume': np.mean(volumes[-20:])
+            'avg_volume': np.mean(volumes[-20:]),
+            # NEW indicators
+            'hma21': hma21[-1] or current_price,
+            'trendline_breakout': trendline_signal.breakout.value,
+            'trendline_upper': trendline_signal.upper_trendline,
+            'trendline_lower': trendline_signal.lower_trendline,
+            'forecast_bias': forecast_bias,
+            'forecast_conf': forecast_conf
         }
         
         # Market regime
@@ -507,6 +542,34 @@ class EnhancedStrategy:
             elif short_score > long_score:
                 short_score += 1
             reasons.append(f"Volume spike ({volume_ratio:.1f}x)")
+        
+        # NEW: HMA Trend (Credit: Alan Hull) - faster than EMA
+        if latest['hma21'] and current_price > latest['hma21']:
+            long_score += 1
+            if current_price > latest['hma21'] * 1.01:  # 1% above HMA
+                long_score += 1
+                reasons.append("Strong HMA bullish")
+        elif latest['hma21'] and current_price < latest['hma21']:
+            short_score += 1
+            if current_price < latest['hma21'] * 0.99:  # 1% below HMA
+                short_score += 1
+                reasons.append("Strong HMA bearish")
+        
+        # NEW: Trendline Breakout (Credit: LuxAlgo) - high conviction signals
+        if latest['trendline_breakout'] == 'bullish':
+            long_score += 3  # Strong signal!
+            reasons.append("🔥 Trendline BREAKOUT bullish")
+        elif latest['trendline_breakout'] == 'bearish':
+            short_score += 3  # Strong signal!
+            reasons.append("🔥 Trendline BREAKOUT bearish")
+        
+        # NEW: Echo Forecast (Credit: LuxAlgo) - pattern prediction
+        if latest['forecast_bias'] == 'bullish' and latest['forecast_conf'] > 0.5:
+            long_score += 2
+            reasons.append(f"Echo forecast bullish ({latest['forecast_conf']:.0%})")
+        elif latest['forecast_bias'] == 'bearish' and latest['forecast_conf'] > 0.5:
+            short_score += 2
+            reasons.append(f"Echo forecast bearish ({latest['forecast_conf']:.0%})")
         
         # Order flow bias (if available)
         if order_flow:
