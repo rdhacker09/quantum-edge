@@ -1,18 +1,11 @@
-# 🤖 Bybit AI vs Human 1v1 Competition Bot - V2 PRO
+# 🤖 Advanced Crypto Trading Bot
 
-Advanced trading bot designed specifically for Bybit's AI & Human 1v1 Trading Competition.
-
-## 🏆 Competition Requirements Met
-- ✅ Minimum 1,000 USDT capital
-- ✅ Minimum 10 trades/day (configured for 12+)
-- ✅ Max 15x leverage enforced
-- ✅ Real capital, MAINNET only
-- ✅ Full audit trail
+Automated trading bot for Bybit USDT Perpetuals with multi-indicator strategy and ML enhancement.
 
 ## 🚀 Features
 
-### Core
-- **Multi-Indicator Strategy**: RSI, MACD, Bollinger Bands, EMAs, Supertrend
+### Core Strategy
+- **Multi-Indicator Analysis**: RSI, MACD, Bollinger Bands, EMAs, Supertrend
 - **Market Regime Detection**: Adapts to trending/ranging/volatile conditions
 - **Order Flow Analysis**: Funding rates, open interest, long/short ratio
 - **ML Signal Enhancement**: Machine learning confidence scoring
@@ -33,7 +26,9 @@ Advanced trading bot designed specifically for Bybit's AI & Human 1v1 Trading Co
 ## 📦 Installation
 
 ```bash
-cd /root/clawd/tools/bybit-1v1-bot
+# Clone repo
+git clone https://github.com/rdhacker09/bybit-1v1-bot.git
+cd bybit-1v1-bot
 
 # Create virtual environment
 python3 -m venv venv
@@ -42,7 +37,7 @@ source venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Copy and edit config
+# Configure
 cp .env.example .env
 nano .env  # Add your API keys
 ```
@@ -51,18 +46,17 @@ nano .env  # Add your API keys
 
 Edit `config.yaml` for:
 - Trading pairs
-- Risk parameters
+- Risk parameters  
 - Leverage limits
 - Strategy settings
 
 ## 🎮 Usage
 
 ```bash
-# Activate venv first
-cd /root/clawd/tools/bybit-1v1-bot
+# Activate venv
 source venv/bin/activate
 
-# Dry run (no real trades) - TEST FIRST!
+# Dry run (simulation)
 python bot_v2.py --dry-run
 
 # Live trading
@@ -74,88 +68,39 @@ python bot_v2.py --debug
 # Check status
 python bot_v2.py --status
 
-# Run in background with nohup
+# Run in background
 nohup python bot_v2.py > bot.out 2>&1 &
 ```
 
 ## 📊 Monitoring
 
-Trade logs are saved to `logs/trades_YYYYMMDD.json`
-
-Bot activity logs: `logs/bot_YYYYMMDD.log`
-
-## ⚠️ Risk Warning
-
-This bot trades with REAL money on MAINNET. 
-
-**NEVER**:
-- Risk more than you can afford to lose
-- Run without testing in dry-run mode first
-- Share your API keys
-
-**ALWAYS**:
-- Start with minimum capital
-- Monitor the bot regularly
-- Have a manual intervention plan
+- Trade logs: `logs/trades_YYYYMMDD.json`
+- Bot activity: `logs/bot_YYYYMMDD.log`
 
 ## 🏗️ Architecture
 
 ```
-bybit-1v1-bot/
-├── bot_v2.py           # Main bot (V2 PRO)
-├── main.py             # Original bot (V1)
-├── config.yaml         # Configuration
+├── bot_v2.py              # Main bot
+├── config.yaml            # Configuration
 ├── src/
-│   ├── market_regime.py    # Regime detection
-│   ├── order_flow.py       # Order flow analysis
-│   ├── smart_entry.py      # Entry optimization
-│   ├── position_manager.py # Position management
-│   ├── ml_model.py         # ML enhancement
-│   └── websocket_client.py # Real-time data
-├── logs/               # Trade & activity logs
-├── models/             # ML model storage
-└── data/               # Historical data
+│   ├── market_regime.py   # Regime detection
+│   ├── order_flow.py      # Order flow analysis
+│   ├── smart_entry.py     # Entry optimization
+│   ├── position_manager.py# Position management
+│   ├── ml_model.py        # ML enhancement
+│   └── websocket_client.py# Real-time data
+└── logs/                  # Trade & activity logs
 ```
 
-## 🎯 Strategy Overview
+## ⚠️ Disclaimer
 
-1. **Signal Generation**
-   - Multi-timeframe analysis (5m, 15m, 1h)
-   - Indicator confluence scoring
-   - Market regime awareness
+This bot trades with real money. Use at your own risk.
 
-2. **Signal Enhancement**
-   - Order flow bias check
-   - ML confidence adjustment
-   - Session timing factor
+- Never risk more than you can afford to lose
+- Always test in dry-run mode first
+- Monitor regularly
+- Past performance ≠ future results
 
-3. **Execution**
-   - Smart entry timing
-   - Dynamic leverage
-   - ATR-based stops
+## 📄 License
 
-4. **Position Management**
-   - Partial take profits
-   - Trailing stops
-   - Break-even protection
-
-## 📈 Performance Tracking
-
-The bot tracks:
-- Win rate
-- Average R:R
-- Daily P&L
-- Max drawdown
-- Sharpe ratio (in logs)
-
-## 🔄 Updates
-
-Check for updates:
-```bash
-cd /root/clawd/tools/bybit-1v1-bot
-git pull
-```
-
----
-
-Built for winning 🏆 Good luck in the competition!
+MIT

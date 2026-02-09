@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-🤖 Bybit AI vs Human 1v1 Competition Trading Bot
+🤖 Bybit AI vs Human 1v1 Trading Trading Bot
 ================================================
-Designed for Bybit's AI & Human 1v1 Trading Competition
+Designed for Bybit's AI & Human 1v1 Trading Trading
 
-Competition Requirements:
+Trading Requirements:
 - Minimum 1,000 USDT capital
 - Minimum 10 trades/day
 - Max recommended leverage: 15x
@@ -110,7 +110,7 @@ class BybitClient:
         if not api_key or not api_secret:
             raise ValueError("❌ BYBIT_API_KEY and BYBIT_API_SECRET must be set in .env")
         
-        # Initialize client (MAINNET for competition)
+        # Initialize client (MAINNET for trading)
         testnet = config.exchange.network != 'mainnet'
         self.client = HTTP(
             testnet=testnet,
@@ -374,7 +374,7 @@ class Indicators:
 # ============================================================
 
 class Strategy:
-    """Trading strategy for the competition."""
+    """Trading strategy for the trading."""
     
     def __init__(self, config: Config):
         self.config = config
@@ -510,8 +510,8 @@ class Strategy:
 # MAIN BOT
 # ============================================================
 
-class CompetitionBot:
-    """Main competition trading bot."""
+class TradingBot:
+    """Main trading trading bot."""
     
     def __init__(self, config: Config, dry_run: bool = False):
         self.config = config
@@ -556,7 +556,7 @@ class CompetitionBot:
         return round(qty, 3)
     
     def _log_trade(self, signal: Signal, qty: float, balance: float):
-        """Log trade for competition audit."""
+        """Log trade for trading audit."""
         log_dir = Path(__file__).parent / "logs"
         log_file = log_dir / f"trades_{datetime.now().strftime('%Y%m%d')}.json"
         
@@ -640,7 +640,7 @@ class CompetitionBot:
                         self._log_trade(signal, qty, balance)
                         self.logger.info(f"✅ Trade #{self.trades_today} executed: {symbol} {signal.side.value}")
         
-        # Check if we need more trades for competition minimum
+        # Check if we need more trades for trading minimum
         remaining_trades = self.config.trading.min_trades_per_day - self.trades_today
         if remaining_trades > 0:
             self.logger.info(f"📈 Need {remaining_trades} more trades to meet daily minimum")
@@ -703,7 +703,7 @@ def setup_logging(level: str = "INFO"):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Bybit 1v1 Competition Bot")
+    parser = argparse.ArgumentParser(description="Bybit 1v1 Trading Bot")
     parser.add_argument("--dry-run", action="store_true", help="Run without placing real orders")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     parser.add_argument("--config", default="config.yaml", help="Config file path")
@@ -723,7 +723,7 @@ def main():
     config = Config(args.config)
     
     # Run bot
-    bot = CompetitionBot(config, dry_run=args.dry_run)
+    bot = TradingBot(config, dry_run=args.dry_run)
     bot.start()
 
 

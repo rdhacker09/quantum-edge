@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-🤖 Bybit AI vs Human 1v1 Competition Bot - V2 PRO
+🤖 Bybit AI vs Human 1v1 Trading Bot - V2 PRO
 =================================================
 Advanced trading bot with:
 - Market regime detection
@@ -9,9 +9,9 @@ Advanced trading bot with:
 - Smart entry optimization
 - Advanced position management
 - WebSocket real-time data
-- Competition audit trail
+- Trading audit trail
 
-Competition Requirements:
+Trading Requirements:
 - Minimum 1,000 USDT capital
 - Minimum 10 trades/day  
 - Max recommended leverage: 15x
@@ -574,8 +574,8 @@ class EnhancedStrategy:
 # MAIN BOT V2
 # ============================================================
 
-class CompetitionBotV2:
-    """Advanced competition trading bot."""
+class TradingBotV2:
+    """Advanced trading trading bot."""
     
     def __init__(self, config: Config, dry_run: bool = False):
         self.config = config
@@ -868,7 +868,7 @@ def setup_logging(level: str = "INFO"):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Bybit 1v1 Competition Bot V2")
+    parser = argparse.ArgumentParser(description="Bybit 1v1 Trading Bot V2")
     parser.add_argument("--dry-run", action="store_true", help="Simulate without real trades")
     parser.add_argument("--debug", action="store_true", help="Debug logging")
     parser.add_argument("--status", action="store_true", help="Show status and exit")
@@ -897,7 +897,7 @@ def main():
             print(f"  - {p['symbol']} {p['side']} {p['size']} @ {p['entry_price']:.2f}")
         return
     
-    bot = CompetitionBotV2(config, dry_run=args.dry_run)
+    bot = TradingBotV2(config, dry_run=args.dry_run)
     bot.start()
 
 

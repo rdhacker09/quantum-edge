@@ -1,9 +1,9 @@
-# Bybit AI vs Human 1v1 Competition Bot - V2 PRO Config
+# Bybit AI vs Human 1v1 Trading Bot - V2 PRO Config
 # =====================================================
 
-# Exchange settings (MAINNET for competition)
+# Exchange settings (MAINNET for trading)
 exchange:
-  network: mainnet  # MAINNET for competition - DO NOT CHANGE
+  network: mainnet  # MAINNET for trading - DO NOT CHANGE
   category: linear  # USDT perpetuals
 
 # Trading pairs - high liquidity majors
@@ -22,12 +22,12 @@ trading:
     - 15     # 15m for confirmation  
     - 60     # 1h for trend
   max_open_positions: 4      # Max concurrent positions
-  min_trades_per_day: 12     # Competition minimum + buffer
+  min_trades_per_day: 12     # Trading minimum + buffer
 
-# Leverage (max 15x per competition rules)
+# Leverage (max 15x per trading rules)
 leverage:
   min_leverage: 3
-  max_leverage: 15    # HARD LIMIT for competition
+  max_leverage: 15    # HARD LIMIT for trading
   default_leverage: 8
   dynamic: true       # Adjust based on volatility/confidence
 
@@ -37,7 +37,7 @@ risk:
   max_risk_pct: 2.5       # Absolute max 2.5% per trade
   max_daily_drawdown: 8.0 # Stop trading if down 8%
   max_position_pct: 25.0  # Max 25% of capital per position
-  min_capital: 1000       # Competition minimum
+  min_capital: 1000       # Trading minimum
 
 # Position sizing
 position:
@@ -100,4 +100,4 @@ logging:
   level: INFO
   console: true
   file: true
-  trade_log: true  # Detailed trade log for competition audit
+  trade_log: true  # Detailed trade log for trading audit
