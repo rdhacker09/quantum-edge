@@ -60,6 +60,7 @@ from src.ml_model import MLSignalEnhancer
 from src.trendline_breaks import TrendlineBreaks, BreakoutType
 from src.advanced_ma import AdvancedMA, MAType, MACrossoverCalculator
 from src.echo_forecast import EchoForecast, ForecastMode
+from src.smart_money_concepts import SmartMoneyConcepts, StructureType, OrderBlockType, TrendDirection
 
 
 # ============================================================
@@ -415,6 +416,7 @@ class EnhancedStrategy:
         # Initialize advanced indicators (Credits preserved in module headers)
         self.trendline_detector = TrendlineBreaks(length=14, slope_mult=1.0)
         self.echo_forecast = EchoForecast(evaluation_window=30, forecast_window=10)
+        self.smc = SmartMoneyConcepts(swing_length=10, ob_count=5)  # Smart Money Concepts (LuxAlgo)
     
     def analyze(self, symbol: str, klines: Dict[int, List[Dict]], 
                 order_flow: Dict = None) -> Optional[Dict]:
@@ -453,6 +455,10 @@ class EnhancedStrategy:
         except:
             forecast_bias, forecast_conf = "neutral", 0.0
         
+        # NEW: Smart Money Concepts (institutional analysis) - Credit: LuxAlgo
+        opens = [k['open'] for k in k5]
+        smc_analysis = self.smc.analyze(opens, highs, lows, closes, volumes)
+        
         # Get latest values
         latest = {
             'rsi': rsi[-1] or 50,
@@ -474,7 +480,16 @@ class EnhancedStrategy:
             'trendline_upper': trendline_signal.upper_trendline,
             'trendline_lower': trendline_signal.lower_trendline,
             'forecast_bias': forecast_bias,
-            'forecast_conf': forecast_conf
+            'forecast_conf': forecast_conf,
+            # SMC (Smart Money Concepts)
+            'smc_trend': smc_analysis.trend.value,
+            'smc_structure': smc_analysis.structure_signal.value,
+            'smc_in_discount': smc_analysis.in_discount,
+            'smc_in_premium': smc_analysis.in_premium,
+            'smc_at_ob': smc_analysis.at_order_block.value if smc_analysis.at_order_block else None,
+            'smc_signal_strength': smc_analysis.signal_strength,
+            'smc_nearest_bull_ob': smc_analysis.nearest_bullish_ob.mid if smc_analysis.nearest_bullish_ob else None,
+            'smc_nearest_bear_ob': smc_analysis.nearest_bearish_ob.mid if smc_analysis.nearest_bearish_ob else None
         }
         
         # Market regime
@@ -570,6 +585,43 @@ class EnhancedStrategy:
         elif latest['forecast_bias'] == 'bearish' and latest['forecast_conf'] > 0.5:
             short_score += 2
             reasons.append(f"Echo forecast bearish ({latest['forecast_conf']:.0%})")
+        
+        # NEW: Smart Money Concepts (Credit: LuxAlgo) - institutional analysis
+        # BOS/CHoCH structure signals
+        if latest['smc_structure'] == 'choch_bullish':
+            long_score += 4  # Change of Character = high conviction reversal!
+            reasons.append("🏦 SMC CHoCH BULLISH (trend reversal)")
+        elif latest['smc_structure'] == 'choch_bearish':
+            short_score += 4
+            reasons.append("🏦 SMC CHoCH BEARISH (trend reversal)")
+        elif latest['smc_structure'] == 'bos_bullish':
+            long_score += 2
+            reasons.append("SMC BOS bullish")
+        elif latest['smc_structure'] == 'bos_bearish':
+            short_score += 2
+            reasons.append("SMC BOS bearish")
+        
+        # Discount/Premium zones
+        if latest['smc_in_discount']:
+            long_score += 2
+            reasons.append("💰 In DISCOUNT zone (smart money buys)")
+        elif latest['smc_in_premium']:
+            short_score += 2
+            reasons.append("💰 In PREMIUM zone (smart money sells)")
+        
+        # At Order Block
+        if latest['smc_at_ob'] == 'bullish':
+            long_score += 3
+            reasons.append("🎯 At BULLISH Order Block!")
+        elif latest['smc_at_ob'] == 'bearish':
+            short_score += 3
+            reasons.append("🎯 At BEARISH Order Block!")
+        
+        # SMC Trend alignment
+        if latest['smc_trend'] == 'bullish':
+            long_score += 1
+        elif latest['smc_trend'] == 'bearish':
+            short_score += 1
         
         # Order flow bias (if available)
         if order_flow:
