@@ -726,28 +726,63 @@ class TradingBotV2:
             self.last_trade_date = today
     
     def _calculate_position_size(self, signal: Dict, balance: float) -> float:
-        """Risk-based position sizing."""
-        risk_pct = self.config.risk.base_risk_pct / 100
+        """
+        DCA-style smart position sizing.
         
-        # Adjust risk based on confidence
-        if signal['confidence'] > 0.8:
-            risk_pct *= 1.2
-        elif signal['confidence'] < 0.6:
-            risk_pct *= 0.8
+        Scales margin based on signal strength:
+        - Score 5-6 (weak):   $50 margin
+        - Score 7-8 (medium): $100 margin
+        - Score 9+  (strong): $150 margin (full size)
         
-        risk_amount = balance * risk_pct
+        SMC signals (Order Block, CHoCH) = tier upgrade
+        Max margin per trade: $150
+        """
+        score = signal.get('score', 5)
+        confidence = signal.get('confidence', 0.5)
+        reasons = signal.get('reasons', [])
         
-        sl_distance = abs(signal['entry_price'] - signal['stop_loss'])
-        sl_pct = sl_distance / signal['entry_price']
+        # Base margin tiers
+        MIN_MARGIN = 50
+        MID_MARGIN = 100
+        MAX_MARGIN = 150
         
-        if sl_pct == 0:
-            return 0
+        # Determine base margin from score
+        if score >= 9:
+            base_margin = MAX_MARGIN
+        elif score >= 7:
+            base_margin = MID_MARGIN
+        else:
+            base_margin = MIN_MARGIN
         
-        size_usdt = risk_amount / sl_pct
-        max_position = balance * (self.config.risk.max_position_pct / 100)
-        size_usdt = min(size_usdt, max_position)
+        # Upgrade tier for high-conviction SMC signals
+        smc_boost = False
+        for reason in reasons:
+            if any(kw in reason.lower() for kw in ['order block', 'choch', 'breakout', 'discount zone']):
+                smc_boost = True
+                break
         
-        qty = size_usdt / signal['entry_price']
+        if smc_boost:
+            if base_margin == MIN_MARGIN:
+                base_margin = MID_MARGIN
+            elif base_margin == MID_MARGIN:
+                base_margin = MAX_MARGIN
+        
+        # Confidence adjustment (±20%)
+        if confidence > 0.8:
+            base_margin = min(MAX_MARGIN, base_margin * 1.2)
+        elif confidence < 0.55:
+            base_margin = max(MIN_MARGIN, base_margin * 0.8)
+        
+        # Final margin (ensure within bounds)
+        margin_usdt = max(MIN_MARGIN, min(MAX_MARGIN, base_margin))
+        
+        # Calculate quantity based on margin and leverage
+        leverage = signal.get('leverage', 5)
+        position_value = margin_usdt * leverage
+        qty = position_value / signal['entry_price']
+        
+        self.logger.info(f"   💰 DCA Sizing: Score {score} → ${margin_usdt:.0f} margin × {leverage}x = ${position_value:.0f} position")
+        
         return round(qty, 3)
     
     def _log_trade(self, signal: Dict, qty: float, balance: float):
@@ -935,7 +970,7 @@ class TradingBotV2:
         print(f"📊 Symbols: {', '.join(self.config.trading.symbols)}")
         print(f"⚡ Max Leverage: {self.config.leverage.max_leverage}x")
         print(f"🎯 Min trades/day: {self.config.trading.min_trades_per_day}")
-        print(f"💰 Risk per trade: {self.config.risk.base_risk_pct}%")
+        print(f"💰 DCA Sizing: $50-150 based on signal strength")
         print("=" * 60 + "\n")
         
         while self.running:

@@ -57,10 +57,19 @@ A machine learning layer enhances base signals:
 
 ## Risk Management
 
-### Position Sizing
-- **Fixed margin per trade: $150 USDT**
-- Dynamic leverage: 5x-15x based on signal confidence
-- Risk per trade: ~1-2% of capital
+### Position Sizing (DCA Smart Sizing)
+Dynamic margin allocation based on signal strength:
+
+| Signal Score | Initial Margin | Position Type |
+|--------------|----------------|---------------|
+| 5-6 (weak) | $50 | Conservative entry |
+| 7-8 (medium) | $100 | Standard entry |
+| 9+ (strong) | $150 | Full conviction |
+
+**SMC Boost:** Signals with Order Blocks, CHoCH, or Discount Zone get automatic tier upgrade.
+
+**Maximum per trade:** $150 margin
+**Leverage:** 5x-15x based on confidence
 
 ### Position Limits
 - **Maximum concurrent positions: 4-6**

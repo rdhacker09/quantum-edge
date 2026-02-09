@@ -1,9 +1,9 @@
 # Bybit AI vs Human 1v1 Trading Bot - V2 PRO Config
 # =====================================================
 
-# Exchange settings (MAINNET for trading)
+# Exchange settings
 exchange:
-  network: mainnet  # MAINNET for trading - DO NOT CHANGE
+  network: testnet  # TESTNET for demo testing
   category: linear  # USDT perpetuals
 
 # Trading pairs - high liquidity majors
@@ -31,18 +31,21 @@ leverage:
   default_leverage: 8
   dynamic: true       # Adjust based on volatility/confidence
 
-# Risk Management - CRITICAL FOR WINNING
+# Risk Management - DCA SMART SIZING
 risk:
-  base_risk_pct: 1.5      # 1.5% per trade
-  max_risk_pct: 2.5       # Absolute max 2.5% per trade
+  # DCA-style margin tiers (based on signal strength)
+  min_margin: 50          # Weak signals (score 5-6)
+  mid_margin: 100         # Medium signals (score 7-8)
+  max_margin: 150         # Strong signals (score 9+)
+  # SMC signals (Order Block, CHoCH) = automatic tier upgrade
   max_daily_drawdown: 8.0 # Stop trading if down 8%
-  max_position_pct: 25.0  # Max 25% of capital per position
   min_capital: 1000       # Trading minimum
 
-# Position sizing
+# Position sizing (DCA-style)
 position:
-  size_method: risk_based  # risk_based recommended
-  fixed_size_usdt: 100     # Fallback for fixed method
+  size_method: dca_smart   # DCA based on signal strength
+  min_margin_usdt: 50      # Minimum margin per trade
+  max_margin_usdt: 150     # Maximum margin per trade
 
 # Stop Loss / Take Profit
 stops:
