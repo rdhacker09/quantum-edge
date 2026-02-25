@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-🤖 Bybit AI vs Human 1v1 Trading Bot - V2 PRO
+🤖 RDroid™ - Bybit AI vs Human 1v1 Trading Bot V2
 =================================================
-Advanced trading bot with:
+RDroid™ - AI-powered trading bot with:
 - Market regime detection
 - Order flow analysis  
 - ML signal enhancement
@@ -48,6 +48,34 @@ try:
 except ImportError:
     print("❌ Please install pybit: pip install pybit")
     sys.exit(1)
+
+# Bybit quantity precision requirements (decimals allowed)
+QTY_PRECISION = {
+    "BTCUSDT": 3,
+    "ETHUSDT": 2,
+    "BNBUSDT": 2,
+    "XRPUSDT": 1,
+    "DOGEUSDT": 0,
+    "AVAXUSDT": 1,
+    "LINKUSDT": 1,
+    "SOLUSDT": 1,
+    "XAUTUSDT": 3,
+    "HYPEUSDT": 1,
+}
+
+# Bybit price precision requirements (decimals for SL/TP)
+PRICE_PRECISION = {
+    "BTCUSDT": 1,
+    "ETHUSDT": 2,
+    "BNBUSDT": 1,
+    "XRPUSDT": 4,
+    "DOGEUSDT": 5,
+    "AVAXUSDT": 3,
+    "LINKUSDT": 3,
+    "SOLUSDT": 2,
+    "XAUTUSDT": 2,
+    "HYPEUSDT": 4,
+}
 
 # Import our modules
 from src.market_regime import MarketRegimeDetector, MarketRegime
@@ -213,16 +241,20 @@ class BybitClient:
                 "side": side,
                 "orderType": "Market",
                 "qty": str(qty),
-                "timeInForce": "GTC"
+                "timeInForce": "GTC",
+                "positionIdx": 1 if side == "Buy" else 2  # Hedge mode: 1=Long, 2=Short
             }
             
             if reduce_only:
                 params["reduceOnly"] = True
+                params["positionIdx"] = 2 if side == "Buy" else 1  # Closing opposite side
             
             if stop_loss:
-                params["stopLoss"] = str(round(stop_loss, 2))
+                price_prec = PRICE_PRECISION.get(symbol, 2)
+                params["stopLoss"] = str(round(stop_loss, price_prec))
             if take_profit:
-                params["takeProfit"] = str(round(take_profit, 2))
+                price_prec = PRICE_PRECISION.get(symbol, 2)
+                params["takeProfit"] = str(round(take_profit, price_prec))
             
             result = self.client.place_order(**params)
             order_id = result['result']['orderId']
@@ -646,18 +678,59 @@ class EnhancedStrategy:
         # Generate signal
         min_score = 5
         
+        # Get SL/TP mode from config
+        tp_mode = getattr(self.config.stops, 'tp_mode', 'atr')  # 'atr' or 'percent'
+        sl_mode = getattr(self.config.stops, 'sl_mode', 'atr')
+        
         if long_score >= min_score and long_score > short_score + 2:
             side = "Buy"
             score = long_score
             confidence = min(0.95, 0.5 + (long_score - short_score) * 0.05)
-            stop_loss = current_price - (latest['atr'] * 2.0)
-            take_profit = current_price + (latest['atr'] * 3.0)
+            
+            # Stop Loss
+            if sl_mode == 'percent':
+                sl_pct = getattr(self.config.stops, 'pct_stop_loss', 1.5)
+                stop_loss = current_price * (1 - sl_pct / 100)
+            else:  # ATR
+                sl_mult = getattr(self.config.stops, 'atr_stop_multiplier', 2.0)
+                stop_loss = current_price - (latest['atr'] * sl_mult)
+            
+            # Take Profits
+            if tp_mode == 'percent':
+                tp1_pct = getattr(self.config.stops, 'pct_tp1', 2.0)
+                tp2_pct = getattr(self.config.stops, 'pct_tp2', 3.5)
+                tp1 = current_price * (1 + tp1_pct / 100)  # 50%
+                tp2 = current_price * (1 + tp2_pct / 100)  # 30%
+            else:  # ATR
+                tp1_mult = getattr(self.config.stops, 'atr_tp1_multiplier', 2.0)
+                tp2_mult = getattr(self.config.stops, 'atr_tp2_multiplier', 3.0)
+                tp1 = current_price + (latest['atr'] * tp1_mult)  # 50%
+                tp2 = current_price + (latest['atr'] * tp2_mult)  # 30%
+            
         elif short_score >= min_score and short_score > long_score + 2:
             side = "Sell"
             score = short_score
             confidence = min(0.95, 0.5 + (short_score - long_score) * 0.05)
-            stop_loss = current_price + (latest['atr'] * 2.0)
-            take_profit = current_price - (latest['atr'] * 3.0)
+            
+            # Stop Loss
+            if sl_mode == 'percent':
+                sl_pct = getattr(self.config.stops, 'pct_stop_loss', 1.5)
+                stop_loss = current_price * (1 + sl_pct / 100)
+            else:  # ATR
+                sl_mult = getattr(self.config.stops, 'atr_stop_multiplier', 2.0)
+                stop_loss = current_price + (latest['atr'] * sl_mult)
+            
+            # Take Profits
+            if tp_mode == 'percent':
+                tp1_pct = getattr(self.config.stops, 'pct_tp1', 2.0)
+                tp2_pct = getattr(self.config.stops, 'pct_tp2', 3.5)
+                tp1 = current_price * (1 - tp1_pct / 100)  # 50%
+                tp2 = current_price * (1 - tp2_pct / 100)  # 30%
+            else:  # ATR
+                tp1_mult = getattr(self.config.stops, 'atr_tp1_multiplier', 2.0)
+                tp2_mult = getattr(self.config.stops, 'atr_tp2_multiplier', 3.0)
+                tp1 = current_price - (latest['atr'] * tp1_mult)  # 50%
+                tp2 = current_price - (latest['atr'] * tp2_mult)  # 30%
         else:
             return None
         
@@ -677,7 +750,8 @@ class EnhancedStrategy:
             'leverage': suggested_leverage,
             'entry_price': current_price,
             'stop_loss': stop_loss,
-            'take_profit': take_profit,
+            'tp1': tp1,  # Close 50%
+            'tp2': tp2,  # Close 30%, then trailing for 20%
             'atr': latest['atr'],
             'regime': regime.regime.value,
             'regime_confidence': regime.confidence,
@@ -690,7 +764,7 @@ class EnhancedStrategy:
 # ============================================================
 
 class TradingBotV2:
-    """Advanced trading trading bot."""
+    """RDroid™ - Advanced AI trading bot."""
     
     def __init__(self, config: Config, dry_run: bool = False):
         self.config = config
@@ -717,6 +791,10 @@ class TradingBotV2:
             'trades_lost': 0,
             'total_pnl': 0
         }
+        
+        # Cooldown tracking - 30 min after closing before re-opening same symbol
+        self.position_closed_at: Dict[str, datetime] = {}
+        self.REENTRY_COOLDOWN_MINUTES = 30
     
     def _reset_daily_counter(self):
         today = datetime.now().date()
@@ -730,26 +808,27 @@ class TradingBotV2:
         DCA-style smart position sizing.
         
         Scales margin based on signal strength:
-        - Score 5-6 (weak):   $50 margin
-        - Score 7-8 (medium): $100 margin
-        - Score 9+  (strong): $150 margin (full size)
+        - Score 7:   $20 margin
+        - Score 8:   $25 margin
+        - Score 9+:  $30 margin
         
+        Designed for ~$1,500 account (1-2% risk per trade)
         SMC signals (Order Block, CHoCH) = tier upgrade
-        Max margin per trade: $150
+        Max margin per trade: $30
         """
         score = signal.get('score', 5)
         confidence = signal.get('confidence', 0.5)
         reasons = signal.get('reasons', [])
         
         # Base margin tiers
-        MIN_MARGIN = 50
-        MID_MARGIN = 100
-        MAX_MARGIN = 150
+        MIN_MARGIN = 20
+        MID_MARGIN = 25
+        MAX_MARGIN = 30
         
         # Determine base margin from score
         if score >= 9:
             base_margin = MAX_MARGIN
-        elif score >= 7:
+        elif score >= 8:
             base_margin = MID_MARGIN
         else:
             base_margin = MIN_MARGIN
@@ -783,7 +862,10 @@ class TradingBotV2:
         
         self.logger.info(f"   💰 DCA Sizing: Score {score} → ${margin_usdt:.0f} margin × {leverage}x = ${position_value:.0f} position")
         
-        return round(qty, 3)
+        # Use correct precision for each symbol
+        symbol = signal.get('symbol', '')
+        precision = QTY_PRECISION.get(symbol, 1)  # Default to 1 decimal
+        return round(qty, precision)
     
     def _log_trade(self, signal: Dict, qty: float, balance: float):
         """Log trade for audit."""
@@ -798,7 +880,9 @@ class TradingBotV2:
             "quantity": qty,
             "entry_price": signal['entry_price'],
             "stop_loss": signal['stop_loss'],
-            "take_profit": signal['take_profit'],
+            "tp1": signal['tp1'],
+            "tp2": signal['tp2'],
+            "tp_structure": "50% @ TP1, 30% @ TP2, 20% trailing",
             "leverage": signal['leverage'],
             "confidence": signal['confidence'],
             "score": signal['score'],
@@ -855,6 +939,14 @@ class TradingBotV2:
                     pos['symbol'], ticker['last_price']
                 )
                 self.position_manager.execute_actions(actions)
+                
+                # Track position closures for cooldown
+                for action in actions:
+                    if action.get("action") == "close_all":
+                        symbol = action.get("symbol")
+                        if symbol:
+                            self.position_closed_at[symbol] = datetime.now()
+                            self.logger.info(f"⏳ {symbol} cooldown started ({self.REENTRY_COOLDOWN_MINUTES}min before re-entry)")
         
         open_symbols = [p['symbol'] for p in positions]
         
@@ -862,6 +954,16 @@ class TradingBotV2:
         for symbol in self.config.trading.symbols:
             if symbol in open_symbols:
                 continue
+            
+            # Check cooldown - wait 5 min after closing before re-entering
+            if symbol in self.position_closed_at:
+                time_since_close = (datetime.now() - self.position_closed_at[symbol]).total_seconds() / 60
+                if time_since_close < self.REENTRY_COOLDOWN_MINUTES:
+                    self.logger.debug(f"⏳ {symbol} cooldown: {self.REENTRY_COOLDOWN_MINUTES - time_since_close:.1f}min remaining")
+                    continue
+                else:
+                    # Cooldown expired, remove from tracking
+                    del self.position_closed_at[symbol]
             
             if len(positions) >= self.config.trading.max_open_positions:
                 break
@@ -913,6 +1015,8 @@ class TradingBotV2:
                     self.logger.info(f"📊 SIGNAL: {symbol} {signal['side']} | Score: {signal['score']} | Conf: {final_confidence:.0%}")
                     self.logger.info(f"   Regime: {signal['regime']} | Leverage: {signal['leverage']}x")
                     self.logger.info(f"   Reasons: {', '.join(signal['reasons'])}")
+                    self.logger.info(f"   📍 Entry: ${signal['entry_price']:.4f} | SL: ${signal['stop_loss']:.4f}")
+                    self.logger.info(f"   🎯 TP1: ${signal['tp1']:.4f} (50%) | TP2: ${signal['tp2']:.4f} (30%) | Runner: 20% trailing")
                     
                     if order_flow_data and order_flow_data.get('insights'):
                         self.logger.info(f"   Order Flow: {', '.join(order_flow_data['insights'][:2])}")
@@ -924,27 +1028,30 @@ class TradingBotV2:
                         # Set leverage
                         self.client.set_leverage(symbol, signal['leverage'])
                         
-                        # Place order
+                        # Place order (only SL, TPs managed by position manager)
                         order_id = self.client.place_order(
                             symbol=symbol,
                             side=signal['side'],
                             qty=qty,
-                            stop_loss=signal['stop_loss'],
-                            take_profit=signal['take_profit']
+                            stop_loss=signal['stop_loss']
+                            # Note: No take_profit - managed by multi-TP system
                         )
                         
                         if order_id:
                             self.trades_today += 1
                             self.stats['trades_executed'] += 1
                             
-                            # Create managed position
+                            # Create managed position (pass pre-calculated TP/SL)
                             self.position_manager.create_managed_position(
                                 symbol=symbol,
                                 side=signal['side'],
                                 entry_price=signal['entry_price'],
                                 size=qty,
                                 leverage=signal['leverage'],
-                                atr=signal['atr']
+                                atr=signal['atr'],
+                                tp1_price=signal['tp1'],
+                                tp2_price=signal['tp2'],
+                                sl_price=signal['stop_loss']
                             )
                             
                             self._log_trade(signal, qty, balance)
@@ -970,7 +1077,21 @@ class TradingBotV2:
         print(f"📊 Symbols: {', '.join(self.config.trading.symbols)}")
         print(f"⚡ Max Leverage: {self.config.leverage.max_leverage}x")
         print(f"🎯 Min trades/day: {self.config.trading.min_trades_per_day}")
-        print(f"💰 DCA Sizing: $50-150 based on signal strength")
+        print(f"💰 DCA Sizing: $50-150 margin (1-2% risk)")
+        
+        # Show TP/SL mode
+        tp_mode = getattr(self.config.stops, 'tp_mode', 'atr')
+        if tp_mode == 'percent':
+            tp1_pct = getattr(self.config.stops, 'pct_tp1', 2.0)
+            tp2_pct = getattr(self.config.stops, 'pct_tp2', 3.5)
+            print(f"📈 Multi-TP Strategy (PERCENT MODE):")
+            print(f"   TP1: +{tp1_pct}% → Close 50%, move SL to breakeven")
+            print(f"   TP2: +{tp2_pct}% → Close 30%, activate trailing")
+        else:
+            print(f"📈 Multi-TP Strategy (ATR MODE):")
+            print(f"   TP1: +2 ATR → Close 50%, move SL to breakeven")
+            print(f"   TP2: +3 ATR → Close 30%, activate trailing")
+        print(f"   Runner: 20% with trailing stop")
         print("=" * 60 + "\n")
         
         while self.running:
@@ -1018,7 +1139,7 @@ def setup_logging(level: str = "INFO"):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Bybit 1v1 Trading Bot V2")
+    parser = argparse.ArgumentParser(description="RDroid™ - Bybit AI vs Human 1v1 Bot")
     parser.add_argument("--dry-run", action="store_true", help="Simulate without real trades")
     parser.add_argument("--debug", action="store_true", help="Debug logging")
     parser.add_argument("--status", action="store_true", help="Show status and exit")

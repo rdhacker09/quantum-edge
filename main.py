@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-🤖 Bybit AI vs Human 1v1 Trading Trading Bot
+🤖 RDroid™ - Bybit AI vs Human 1v1 Trading Bot
 ================================================
 Designed for Bybit's AI & Human 1v1 Trading Trading
 
@@ -511,7 +511,7 @@ class Strategy:
 # ============================================================
 
 class TradingBot:
-    """Main trading trading bot."""
+    """RDroid™ - Main trading bot."""
     
     def __init__(self, config: Config, dry_run: bool = False):
         self.config = config
@@ -703,7 +703,7 @@ def setup_logging(level: str = "INFO"):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Bybit 1v1 Trading Bot")
+    parser = argparse.ArgumentParser(description="RDroid™ - Bybit AI vs Human 1v1 Bot")
     parser.add_argument("--dry-run", action="store_true", help="Run without placing real orders")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     parser.add_argument("--config", default="config.yaml", help="Config file path")

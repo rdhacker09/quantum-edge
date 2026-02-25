@@ -1,6 +1,8 @@
-# 🤖 Advanced Crypto Trading Bot
+# 🤖 RDroid™ — Bybit AI vs Human Trading Bot
 
-Automated trading bot for Bybit USDT Perpetuals with multi-indicator strategy and ML enhancement.
+> *Built by [@rd__hacker](https://x.com/rd__hacker) | Competing in Bybit AI vs Human 1v1 Competition 2026*
+
+RDroid™ is an AI-powered trading bot for Bybit USDT Perpetuals with multi-indicator strategy, ML signal enhancement, and dynamic risk management.
 
 ## 🚀 Features
 
@@ -80,7 +82,7 @@ nohup python bot_v2.py > bot.out 2>&1 &
 ## 🏗️ Architecture
 
 ```
-├── bot_v2.py              # Main bot
+├── bot_v2.py              # Main RDroid engine
 ├── config.yaml            # Configuration
 ├── src/
 │   ├── market_regime.py   # Regime detection
@@ -91,6 +93,15 @@ nohup python bot_v2.py > bot.out 2>&1 &
 │   └── websocket_client.py# Real-time data
 └── logs/                  # Trade & activity logs
 ```
+
+## 🏆 Bybit AI vs Human Competition
+
+RDroid™ is registered for the **Bybit AI vs Human 1v1 Competition 2026**.
+
+Competition rules:
+- 1,000 USDT minimum
+- 10 trades/day
+- Max 15x leverage
 
 ## ⚠️ Disclaimer
 
