@@ -3,25 +3,28 @@
 
 # Exchange settings
 exchange:
-  network: testnet  # TESTNET for demo testing
+  network: mainnet  # MAINNET for live trading
   category: linear  # USDT perpetuals
 
 # Trading pairs - high liquidity majors
 trading:
   symbols:
-    - BTCUSDT
-    - ETHUSDT
-    - SOLUSDT
     - BNBUSDT
     - XRPUSDT
     - DOGEUSDT
     - AVAXUSDT
     - LINKUSDT
+  # EXCLUDED (user has open positions):
+  # - BTCUSDT
+  # - ETHUSDT
+  # - SOLUSDT
+  # - XAUTUSDT
+  # - HYPEUSDT
   timeframes:
     - 5      # 5m for entries
     - 15     # 15m for confirmation  
     - 60     # 1h for trend
-  max_open_positions: 4      # Max concurrent positions
+  max_open_positions: 6      # Max concurrent positions
   min_trades_per_day: 12     # Trading minimum + buffer
 
 # Leverage (max 15x per trading rules)
@@ -49,9 +52,22 @@ position:
 
 # Stop Loss / Take Profit
 stops:
-  use_atr_stops: true
+  # Mode: "atr" (volatility-based) or "percent" (fixed percentage)
+  tp_mode: percent           # <-- Change to "atr" for ATR-based
+  sl_mode: percent           # Fixed % stop loss
+  
+  # ATR-based settings (when mode = atr)
   atr_stop_multiplier: 2.0    # 2x ATR stop loss
-  atr_tp_multiplier: 3.0      # 3x ATR take profit (1.5:1 RR)
+  atr_tp1_multiplier: 2.0     # TP1 = +2x ATR (close 50%)
+  atr_tp2_multiplier: 3.0     # TP2 = +3x ATR (close 30%)
+  
+  # Percentage-based settings (when mode = percent)
+  pct_stop_loss: 1.5          # SL at -1.5%
+  pct_tp1: 2.0                # TP1 at +2% (close 50%)
+  pct_tp2: 3.5                # TP2 at +3.5% (close 30%)
+  # Remaining 20% = trailing
+  
+  # Trailing stop
   trailing_stop: true
   trailing_activation_pct: 1.5   # Activate at 1.5% profit
   trailing_distance_pct: 1.0     # Trail 1% behind

@@ -1,8 +1,8 @@
-# 🤖 RDroid™ — Bybit AI vs Human Trading Bot
+# 🤖 QuantumEdge — Bybit AI vs Human Trading Bot
 
 > *Built by [@rd__hacker](https://x.com/rd__hacker) | Competing in Bybit AI vs Human 1v1 Competition 2026*
 
-RDroid™ is an AI-powered trading bot for Bybit USDT Perpetuals with multi-indicator strategy, ML signal enhancement, and dynamic risk management.
+QuantumEdge is an AI-powered trading bot for Bybit USDT Perpetuals with multi-indicator strategy, ML signal enhancement, and dynamic risk management.
 
 ## 🚀 Features
 
@@ -82,7 +82,7 @@ nohup python bot_v2.py > bot.out 2>&1 &
 ## 🏗️ Architecture
 
 ```
-├── bot_v2.py              # Main RDroid engine
+├── bot_v2.py              # Main QuantumEdge engine
 ├── config.yaml            # Configuration
 ├── src/
 │   ├── market_regime.py   # Regime detection
@@ -96,7 +96,7 @@ nohup python bot_v2.py > bot.out 2>&1 &
 
 ## 🏆 Bybit AI vs Human Competition
 
-RDroid™ is registered for the **Bybit AI vs Human 1v1 Competition 2026**.
+QuantumEdge is registered for the **Bybit AI vs Human 1v1 Competition 2026**.
 
 Competition rules:
 - 1,000 USDT minimum
