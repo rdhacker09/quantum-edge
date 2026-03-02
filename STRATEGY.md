@@ -164,7 +164,7 @@ The bot is fully autonomous with AI decision-making at every level:
 
 ## GitHub Repository
 
-**Public Repository:** https://github.com/rdhacker09/bybit-1v1-bot
+**Public Repository:** https://github.com/rdhacker09/quantum-edge
 
 Daily code updates will be pushed to maintain transparency and demonstrate AI participation.
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-🤖 RDroid™ - Bybit AI vs Human 1v1 Trading Bot V2
+⚡ QuantumEdge - AI-Powered Crypto Trading Bot
 =================================================
-RDroid™ - AI-powered trading bot with:
+QuantumEdge - AI-powered trading bot with:
 - Market regime detection
 - Order flow analysis  
 - ML signal enhancement
@@ -675,14 +675,23 @@ class EnhancedStrategy:
             long_score = int(long_score * 0.7)
             short_score = int(short_score * 0.7)
         
+        # ─── CONFLICT FILTER (Fix 3) ───────────────────────────
+        # Remove contradictory reason labels so the log makes sense
+        if long_score > short_score:
+            reasons = [r for r in reasons if not any(w in r.lower() for w in
+                ['bearish', 'overbought', 'premium zone'])]
+        elif short_score > long_score:
+            reasons = [r for r in reasons if not any(w in r.lower() for w in
+                ['bullish', 'oversold', 'discount zone'])]
+
         # Generate signal
-        min_score = 5
+        min_score = 4
         
         # Get SL/TP mode from config
         tp_mode = getattr(self.config.stops, 'tp_mode', 'atr')  # 'atr' or 'percent'
         sl_mode = getattr(self.config.stops, 'sl_mode', 'atr')
         
-        if long_score >= min_score and long_score > short_score + 2:
+        if long_score >= min_score and long_score > short_score + 1:
             side = "Buy"
             score = long_score
             confidence = min(0.95, 0.5 + (long_score - short_score) * 0.05)
@@ -707,7 +716,7 @@ class EnhancedStrategy:
                 tp1 = current_price + (latest['atr'] * tp1_mult)  # 50%
                 tp2 = current_price + (latest['atr'] * tp2_mult)  # 30%
             
-        elif short_score >= min_score and short_score > long_score + 2:
+        elif short_score >= min_score and short_score > long_score + 1:
             side = "Sell"
             score = short_score
             confidence = min(0.95, 0.5 + (short_score - long_score) * 0.05)
@@ -764,7 +773,7 @@ class EnhancedStrategy:
 # ============================================================
 
 class TradingBotV2:
-    """RDroid™ - Advanced AI trading bot."""
+    """QuantumEdge - Advanced AI trading bot."""
     
     def __init__(self, config: Config, dry_run: bool = False):
         self.config = config
@@ -874,7 +883,9 @@ class TradingBotV2:
         log_file = log_dir / f"trades_{datetime.now().strftime('%Y%m%d')}.json"
         
         trade_log = {
+            "id": f"QE-{datetime.now().strftime('%Y%m%d%H%M%S')}-{signal['symbol']}",
             "timestamp": datetime.now().isoformat(),
+            "bot": "QuantumEdge v2.0",
             "symbol": signal['symbol'],
             "side": signal['side'],
             "quantity": qty,
@@ -884,11 +895,18 @@ class TradingBotV2:
             "tp2": signal['tp2'],
             "tp_structure": "50% @ TP1, 30% @ TP2, 20% trailing",
             "leverage": signal['leverage'],
+            "margin_used": round(qty * signal['entry_price'] / signal['leverage'], 2),
+            "position_value": round(qty * signal['entry_price'], 2),
             "confidence": signal['confidence'],
             "score": signal['score'],
             "reasons": signal['reasons'],
             "regime": signal['regime'],
-            "balance": balance,
+            "balance_before": balance,
+            "status": "open",        # open | tp1_hit | tp2_hit | sl_hit | closed
+            "exit_price": None,      # filled on close
+            "exit_time": None,       # filled on close
+            "realized_pnl": None,    # filled on close
+            "pnl_pct": None,         # filled on close
             "dry_run": self.dry_run
         }
         
@@ -901,6 +919,51 @@ class TradingBotV2:
         with open(log_file, 'w') as f:
             json.dump(logs, f, indent=2)
     
+    def _close_trade_log(self, symbol: str, exit_price: float, status: str = "closed"):
+        """Update trade log with exit price and PnL when position closes."""
+        log_dir = Path(__file__).parent / "logs"
+        # Check today and yesterday (trade may have opened yesterday)
+        for date_offset in [0, 1]:
+            date_str = (datetime.now() - timedelta(days=date_offset)).strftime('%Y%m%d')
+            log_file = log_dir / f"trades_{date_str}.json"
+            if not log_file.exists():
+                continue
+            with open(log_file) as f:
+                logs = json.load(f)
+            updated = False
+            for trade in logs:
+                if trade.get('symbol') == symbol and trade.get('status') == 'open':
+                    entry_price = trade['entry_price']
+                    side = trade['side']
+                    qty = trade['quantity']
+                    leverage = trade['leverage']
+                    # Calculate PnL
+                    if side == 'Buy':
+                        pnl = (exit_price - entry_price) * qty
+                        pnl_pct = ((exit_price - entry_price) / entry_price) * 100 * leverage
+                    else:
+                        pnl = (entry_price - exit_price) * qty
+                        pnl_pct = ((entry_price - exit_price) / entry_price) * 100 * leverage
+                    trade['exit_price'] = exit_price
+                    trade['exit_time'] = datetime.now().isoformat()
+                    trade['realized_pnl'] = round(pnl, 4)
+                    trade['pnl_pct'] = round(pnl_pct, 2)
+                    trade['status'] = status
+                    self.daily_pnl += pnl
+                    self.stats['total_pnl'] += pnl
+                    if pnl > 0:
+                        self.stats['trades_won'] += 1
+                        self.logger.info(f"✅ CLOSED {symbol} | Exit: ${exit_price:.4f} | PnL: +${pnl:.2f} ({pnl_pct:+.1f}%)")
+                    else:
+                        self.stats['trades_lost'] += 1
+                        self.logger.info(f"❌ CLOSED {symbol} | Exit: ${exit_price:.4f} | PnL: ${pnl:.2f} ({pnl_pct:+.1f}%)")
+                    updated = True
+                    break
+            if updated:
+                with open(log_file, 'w') as f:
+                    json.dump(logs, f, indent=2)
+                return
+
     def _print_status(self, balance: float, positions: List[Dict]):
         """Print status dashboard."""
         print("\n" + "=" * 60)
@@ -940,13 +1003,21 @@ class TradingBotV2:
                 )
                 self.position_manager.execute_actions(actions)
                 
-                # Track position closures for cooldown
+                # Track position closures for cooldown + PnL logging
                 for action in actions:
                     if action.get("action") == "close_all":
                         symbol = action.get("symbol")
                         if symbol:
                             self.position_closed_at[symbol] = datetime.now()
                             self.logger.info(f"⏳ {symbol} cooldown started ({self.REENTRY_COOLDOWN_MINUTES}min before re-entry)")
+                            # Log exit with PnL
+                            if ticker:
+                                exit_status = action.get("reason", "closed")
+                                self._close_trade_log(symbol, ticker['last_price'], exit_status)
+                    elif action.get("action") in ("partial_tp1", "partial_tp2"):
+                        symbol = action.get("symbol")
+                        if symbol and ticker:
+                            self._close_trade_log(symbol, ticker['last_price'], action["action"])
         
         open_symbols = [p['symbol'] for p in positions]
         
@@ -989,7 +1060,7 @@ class TradingBotV2:
             # Strategy analysis
             signal = self.strategy.analyze(symbol, klines, order_flow_data)
             
-            if signal and signal['confidence'] >= 0.55:
+            if signal and signal['confidence'] >= 0.50:
                 self.stats['signals_generated'] += 1
                 
                 # ML enhancement
@@ -1010,7 +1081,7 @@ class TradingBotV2:
                 # Combine confidences
                 final_confidence = (signal['confidence'] + ml_signal.confidence) / 2
                 
-                if final_confidence >= 0.6:
+                if final_confidence >= 0.50:
                     self.logger.info(f"\n{'='*50}")
                     self.logger.info(f"📊 SIGNAL: {symbol} {signal['side']} | Score: {signal['score']} | Conf: {final_confidence:.0%}")
                     self.logger.info(f"   Regime: {signal['regime']} | Leverage: {signal['leverage']}x")
@@ -1071,7 +1142,7 @@ class TradingBotV2:
         self.running = True
         
         print("\n" + "🔥" * 30)
-        print("🤖 BYBIT AI vs HUMAN 1v1 COMPETITION BOT V2 PRO")
+        print("⚡ QUANTUMEDGE — BYBIT AI vs HUMAN 1v1 COMPETITION BOT")
         print("🔥" * 30)
         print(f"🎯 Mode: {'🔵 DRY RUN' if self.dry_run else '🔴 LIVE TRADING'}")
         print(f"📊 Symbols: {', '.join(self.config.trading.symbols)}")
@@ -1139,7 +1210,7 @@ def setup_logging(level: str = "INFO"):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="RDroid™ - Bybit AI vs Human 1v1 Bot")
+    parser = argparse.ArgumentParser(description="QuantumEdge - Automated Crypto Trading Bot")
     parser.add_argument("--dry-run", action="store_true", help="Simulate without real trades")
     parser.add_argument("--debug", action="store_true", help="Debug logging")
     parser.add_argument("--status", action="store_true", help="Show status and exit")

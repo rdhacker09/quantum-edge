@@ -1,4 +1,4 @@
-# Bybit AI vs Human 1v1 Trading Bot - V2 PRO Config
+# QuantumEdge Trading Bot - Config
 # =====================================================
 
 # Exchange settings
@@ -14,17 +14,25 @@ trading:
     - DOGEUSDT
     - AVAXUSDT
     - LINKUSDT
-  # EXCLUDED (user has open positions):
+    - ADAUSDT
+    - SUIUSDT
+    - PEPEUSDT
+    - APTUSDT
+    - ARBUSDT
+    - OPUSDT
+    - DOTUSDT
+    - MATICUSDT
+    - WLDUSDT
+    - XAUTUSDT
+  # EXCLUDED (user has open positions - bot will skip if already open):
   # - BTCUSDT
   # - ETHUSDT
   # - SOLUSDT
-  # - XAUTUSDT
-  # - HYPEUSDT
   timeframes:
     - 5      # 5m for entries
     - 15     # 15m for confirmation  
     - 60     # 1h for trend
-  max_open_positions: 6      # Max concurrent positions
+  max_open_positions: 8      # Max concurrent positions
   min_trades_per_day: 12     # Trading minimum + buffer
 
 # Leverage (max 15x per trading rules)
@@ -98,8 +106,8 @@ strategy:
   trend_ema: 50
   
   # Signal thresholds
-  min_confidence: 0.55    # Minimum confidence to consider
-  min_signal_score: 5     # Min indicators agreeing
+  min_confidence: 0.50    # Minimum confidence to consider
+  min_signal_score: 4     # Min indicators agreeing (lowered for more signals)
 
 # ML Model settings
 ml:
